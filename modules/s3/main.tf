@@ -1,16 +1,30 @@
+# Generate a random string for a unique bucket name
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
 # Create an S3 bucket
 resource "aws_s3_bucket" "b338_bucket" {
-  bucket = "cbz-frontend-project-bux" # Replace with a globally unique bucket name
-
-  # Enable static website hosting
-  website {
-    index_document = "index.html"
-    error_document = "error.html"
-  }
+  bucket = "cbz-frontend-project-${random_string.suffix.result}"
 
   tags = {
-    Name        = "StaticWebsiteBucket"
-    env = "dev"
+    Name = "StaticWebsiteBucket"
+    env  = "dev"
+  }
+}
+
+# Enable static website hosting (Corrected)
+resource "aws_s3_bucket_website_configuration" "b338_website" {
+  bucket = aws_s3_bucket.b338_bucket.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
   }
 }
 
@@ -23,7 +37,8 @@ resource "aws_s3_bucket_public_access_block" "example" {
   ignore_public_acls      = false
   restrict_public_buckets = false
 }
-# Set the bucket policy to allow public read access (use cautiously)
+
+# Set the bucket policy to allow public read access
 resource "aws_s3_bucket_policy" "static_website_policy" {
   bucket = aws_s3_bucket.b338_bucket.id
 
@@ -43,6 +58,6 @@ resource "aws_s3_bucket_policy" "static_website_policy" {
 
 # Output the bucket's website endpoint
 output "website_endpoint" {
-  value       = aws_s3_bucket.b338_bucket.website_endpoint
+  value       = aws_s3_bucket_website_configuration.b338_website.website_endpoint
   description = "The URL to access the static website"
 }
